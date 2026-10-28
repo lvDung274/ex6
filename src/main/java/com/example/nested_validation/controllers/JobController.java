@@ -21,28 +21,42 @@ import java.util.Map;
 @RequestMapping("/api/v1/jobs")
 @RequiredArgsConstructor
 public class JobController {
+
     @PostMapping
     public ResponseEntity<?> createJob(@Valid @RequestBody JobCreateDTO request, BindingResult result) {
         if (result.hasErrors()) {
-            Map<String, String> errors = new HashMap<>();
-            List<FieldError> fieldErrors = result.getFieldErrors();
-
-            fieldErrors.forEach(error -> errors.put(error.getField(), error.getDefaultMessage()));
+            return buildValidationErrorResponse(result);
+        }
+        if (request.getSalaryMin() > request.getSalaryMax()) {
+            Map<String, String> customError = new HashMap<>();
+            customError.put("salaryMin", "Lương tối thiểu không được lớn hơn lương tối đa");
 
             return ResponseEntity.badRequest().body(
                     ApiResponse.builder()
                             .status(HttpStatus.BAD_REQUEST.name())
                             .message("Data Failed")
-                            .data(errors)
+                            .data(customError)
                             .build()
             );
         }
-
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 ApiResponse.builder()
                         .status(HttpStatus.CREATED.name())
                         .message("Tạo tin tuyển dụng thành công")
                         .data(request)
+                        .build()
+        );
+    }
+
+    private ResponseEntity<?> buildValidationErrorResponse(BindingResult result) {
+        Map<String, String> errors = new HashMap<>();
+        result.getFieldErrors().forEach(error -> errors.put(error.getField(), error.getDefaultMessage()));
+
+        return ResponseEntity.badRequest().body(
+                ApiResponse.builder()
+                        .status(HttpStatus.BAD_REQUEST.name())
+                        .message("Data Failed")
+                        .data(errors)
                         .build()
         );
     }
